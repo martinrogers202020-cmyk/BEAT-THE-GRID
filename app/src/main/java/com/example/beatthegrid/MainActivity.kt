@@ -4,12 +4,20 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,11 +30,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -34,16 +40,20 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -67,65 +77,63 @@ fun BeatTheGridApp(viewModel: GameViewModel = viewModel()) {
     val navController = rememberNavController()
     val state by viewModel.state.collectAsState()
 
-    MaterialTheme {
-        Surface(modifier = Modifier.fillMaxSize()) {
-            NavHost(
-                navController = navController,
-                startDestination = Screen.Daily.route
-            ) {
-                composable(Screen.Daily.route) {
-                    DailyScreen(state = state, onStart = {
+    BeatTheGridTheme {
+        NavHost(
+            navController = navController,
+            startDestination = Screen.Daily.route
+        ) {
+            composable(Screen.Daily.route) {
+                DailyScreen(state = state, onStart = {
+                    viewModel.startAttempt()
+                    navController.navigate(Screen.SelectNumber.route)
+                })
+            }
+            composable(Screen.SelectNumber.route) {
+                SelectNumberScreen(
+                    state = state,
+                    onCellSelected = { index ->
+                        viewModel.selectCell(index)
+                        navController.navigate(Screen.ApplyOperation.route)
+                    },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.ApplyOperation.route) {
+                ApplyOperationScreen(
+                    state = state,
+                    onApply = { operation ->
+                        val result = viewModel.applyOperation(operation)
+                        if (result is AttemptResult.Finished) {
+                            navController.navigate(Screen.Results.route) {
+                                popUpTo(Screen.Daily.route) { inclusive = false }
+                            }
+                        } else {
+                            navController.popBackStack()
+                        }
+                    },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.Results.route) {
+                ResultsScreen(
+                    state = state,
+                    onShare = { shareText ->
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, shareText)
+                        }
+                        startActivity(Intent.createChooser(intent, "Share results"))
+                    },
+                    onPlayAgain = {
                         viewModel.startAttempt()
                         navController.navigate(Screen.SelectNumber.route)
-                    })
-                }
-                composable(Screen.SelectNumber.route) {
-                    SelectNumberScreen(
-                        state = state,
-                        onCellSelected = { index ->
-                            viewModel.selectCell(index)
-                            navController.navigate(Screen.ApplyOperation.route)
-                        },
-                        onBack = { navController.popBackStack() }
-                    )
-                }
-                composable(Screen.ApplyOperation.route) {
-                    ApplyOperationScreen(
-                        state = state,
-                        onApply = { operation ->
-                            val result = viewModel.applyOperation(operation)
-                            if (result is AttemptResult.Finished) {
-                                navController.navigate(Screen.Results.route) {
-                                    popUpTo(Screen.Daily.route) { inclusive = false }
-                                }
-                            } else {
-                                navController.popBackStack()
-                            }
-                        },
-                        onBack = { navController.popBackStack() }
-                    )
-                }
-                composable(Screen.Results.route) {
-                    ResultsScreen(
-                        state = state,
-                        onShare = { shareText ->
-                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, shareText)
-                            }
-                            startActivity(Intent.createChooser(intent, "Share results"))
-                        },
-                        onPlayAgain = {
-                            viewModel.startAttempt()
-                            navController.navigate(Screen.SelectNumber.route)
-                        },
-                        onHome = {
-                            navController.navigate(Screen.Daily.route) {
-                                popUpTo(Screen.Daily.route) { inclusive = true }
-                            }
+                    },
+                    onHome = {
+                        navController.navigate(Screen.Daily.route) {
+                            popUpTo(Screen.Daily.route) { inclusive = true }
                         }
-                    )
-                }
+                    }
+                )
             }
         }
     }
@@ -133,19 +141,17 @@ fun BeatTheGridApp(viewModel: GameViewModel = viewModel()) {
 
 @Composable
 fun DailyScreen(state: GameState, onStart: () -> Unit) {
-    val gradient = Brush.verticalGradient(
-        colors = listOf(Color(0xFF0B1220), Color(0xFF1F2A44), Color(0xFF111827))
-    )
+    val gradient = beatBackgroundGradient()
 
-    Scaffold(topBar = {
-        TopAppBar(
-            title = { Text("Daily Grid") },
-            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                containerColor = Color(0xFF111827),
-                titleContentColor = Color.White
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = {
+            BeatTopBar(
+                title = "BEAT THE GRID",
+                subtitle = "Day ${state.dayIndex + 1} • Daily Grid"
             )
-        )
-    }) { padding ->
+        }
+    ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -158,76 +164,47 @@ fun DailyScreen(state: GameState, onStart: () -> Unit) {
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937)),
-                    shape = RoundedCornerShape(24.dp)
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text(
-                            text = "Beat the Grid",
-                            color = Color.White,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Day ${state.dayIndex + 1}",
-                            color = Color(0xFF9CA3AF)
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Target",
-                            color = Color(0xFF9CA3AF)
-                        )
-                        Text(
-                            text = state.target.toString(),
-                            color = Color(0xFFFBBF24),
-                            fontSize = 36.sp,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Tries left: ${state.triesRemaining} / 5",
-                            color = Color.White
-                        )
-                    }
-                }
-
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF111827)),
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Rules",
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Pick a cell, then apply an operation. You get 4 moves. +2, -3, ×2, ÷2 operations are allowed.",
-                            color = Color(0xFF9CA3AF)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Win by matching the target before time runs out. Each miss costs a daily try.",
-                            color = Color(0xFF9CA3AF)
-                        )
-                    }
-                }
-
-                Button(
-                    onClick = onStart,
-                    enabled = state.triesRemaining > 0 && !state.completed,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
-                ) {
-                    Icon(Icons.Default.ArrowForward, contentDescription = null)
-                    Spacer(modifier = Modifier.size(8.dp))
+                BeatCard {
                     Text(
-                        text = if (state.completed) "Completed" else "Start Run",
-                        fontWeight = FontWeight.Bold
+                        text = "Daily Target",
+                        color = BeatMuted,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    TargetPill(value = state.target.toString())
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Tries left: ${state.triesRemaining} / 5",
+                        color = BeatOnDark
                     )
                 }
+
+                BeatCard(
+                    containerColor = BeatCardSecondary
+                ) {
+                    Text(
+                        text = "Rules",
+                        color = BeatOnDark,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Pick a cell, then apply an operation. You get 4 moves. +2, -3, ×2, ÷2 operations are allowed.",
+                        color = BeatMuted
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Win by matching the target before time runs out. Each miss costs a daily try.",
+                        color = BeatMuted
+                    )
+                }
+
+                BeatPrimaryButton(
+                    label = if (state.completed) "Completed" else "Start Run",
+                    enabled = state.triesRemaining > 0 && !state.completed,
+                    onClick = onStart,
+                    leadingIcon = { Icon(Icons.Default.ArrowForward, contentDescription = null) }
+                )
             }
         }
     }
@@ -235,25 +212,18 @@ fun DailyScreen(state: GameState, onStart: () -> Unit) {
 
 @Composable
 fun SelectNumberScreen(state: GameState, onCellSelected: (Int) -> Unit, onBack: () -> Unit) {
-    val gradient = Brush.linearGradient(
-        colors = listOf(Color(0xFF111827), Color(0xFF1F2937), Color(0xFF0F172A))
-    )
+    val gradient = beatBackgroundGradient()
 
-    Scaffold(topBar = {
-        TopAppBar(
-            title = { Text("Pick a cell") },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Back")
-                }
-            },
-            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                containerColor = Color(0xFF111827),
-                titleContentColor = Color.White,
-                navigationIconContentColor = Color.White
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = {
+            BeatTopBar(
+                title = "BEAT THE GRID",
+                subtitle = "Pick a cell",
+                onBack = onBack
             )
-        )
-    }) { padding ->
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -271,27 +241,18 @@ fun SelectNumberScreen(state: GameState, onCellSelected: (Int) -> Unit, onBack: 
             ) {
                 itemsIndexed(state.grid) { index, value ->
                     val used = state.usedIndices.contains(index)
-                    Card(
-                        modifier = Modifier
-                            .aspectRatio(1f),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (used) Color(0xFF374151) else Color(0xFF1F2937)
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Button(
-                            onClick = { onCellSelected(index) },
-                            enabled = !used,
-                            modifier = Modifier.fillMaxSize(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (used) Color(0xFF374151) else Color(0xFF2563EB),
-                                contentColor = Color.White
-                            ),
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Text(text = value.toString(), fontWeight = FontWeight.Bold)
-                        }
+                    val selected = state.selectedIndex == index
+                    val tileState = when {
+                        selected -> TileState.Selected
+                        used -> TileState.Used
+                        else -> TileState.Available
                     }
+                    GridTile(
+                        value = value,
+                        state = tileState,
+                        enabled = !used,
+                        onClick = { onCellSelected(index) }
+                    )
                 }
             }
         }
@@ -300,27 +261,20 @@ fun SelectNumberScreen(state: GameState, onCellSelected: (Int) -> Unit, onBack: 
 
 @Composable
 fun ApplyOperationScreen(state: GameState, onApply: (Operation) -> Unit, onBack: () -> Unit) {
-    val gradient = Brush.verticalGradient(
-        colors = listOf(Color(0xFF0F172A), Color(0xFF1E293B))
-    )
+    val gradient = beatBackgroundGradient()
     val runningValue = state.runningValue ?: 0
     val selectionValue = state.selectedIndex?.let { state.grid[it] } ?: 0
 
-    Scaffold(topBar = {
-        TopAppBar(
-            title = { Text("Apply Operation") },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Back")
-                }
-            },
-            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                containerColor = Color(0xFF111827),
-                titleContentColor = Color.White,
-                navigationIconContentColor = Color.White
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = {
+            BeatTopBar(
+                title = "BEAT THE GRID",
+                subtitle = "Apply operation",
+                onBack = onBack
             )
-        )
-    }) { padding ->
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -330,36 +284,40 @@ fun ApplyOperationScreen(state: GameState, onApply: (Operation) -> Unit, onBack:
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             ProgressCard(state = state)
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937)),
-                shape = RoundedCornerShape(20.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Selected cell", color = Color(0xFF9CA3AF))
-                    Text(
-                        text = selectionValue.toString(),
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Running value", color = Color(0xFF9CA3AF))
-                    Text(
-                        text = runningValue.toString(),
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFBBF24)
-                    )
-                }
+            BeatCard {
+                Text("Selected cell", color = BeatMuted)
+                Text(
+                    text = selectionValue.toString(),
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = BeatOnDark
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Running value", color = BeatMuted)
+                TargetPill(
+                    value = runningValue.toString(),
+                    modifier = Modifier.padding(top = 6.dp),
+                    fontSize = 26.sp
+                )
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OperationButton(label = "+2", enabled = true) { onApply(Operation.AddTwo) }
-                OperationButton(label = "-3", enabled = true) { onApply(Operation.SubtractThree) }
-                OperationButton(label = "×2", enabled = true) { onApply(Operation.MultiplyTwo) }
+                OperationButton(
+                    label = "+2",
+                    colors = listOf(BeatGreen, BeatGreenDeep)
+                ) { onApply(Operation.AddTwo) }
+                OperationButton(
+                    label = "-3",
+                    colors = listOf(BeatRed, BeatRedDeep)
+                ) { onApply(Operation.SubtractThree) }
+                OperationButton(
+                    label = "×2",
+                    colors = listOf(BeatGreen, BeatGreenDeep)
+                ) { onApply(Operation.MultiplyTwo) }
                 OperationButton(
                     label = "÷2",
-                    enabled = runningValue % 2 == 0
+                    enabled = runningValue % 2 == 0,
+                    colors = listOf(BeatBlue, BeatBlueDeep)
                 ) { onApply(Operation.DivideTwo) }
             }
         }
@@ -373,27 +331,25 @@ fun ResultsScreen(
     onPlayAgain: () -> Unit,
     onHome: () -> Unit
 ) {
-    val gradient = Brush.linearGradient(
-        colors = listOf(Color(0xFF111827), Color(0xFF0F172A))
-    )
+    val gradient = beatBackgroundGradient()
     val resultText = if (state.result == AttemptOutcome.Won) "Victory" else "Out of moves"
     val shareMessage = buildShareText(state)
 
-    Scaffold(topBar = {
-        TopAppBar(
-            title = { Text("Results") },
-            actions = {
-                IconButton(onClick = { onShare(shareMessage) }) {
-                    Icon(Icons.Default.Share, contentDescription = "Share")
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = {
+            BeatTopBar(
+                title = "BEAT THE GRID",
+                subtitle = "Results",
+                onBack = onHome,
+                actions = {
+                    IconButton(onClick = { onShare(shareMessage) }) {
+                        Icon(Icons.Default.Share, contentDescription = "Share", tint = BeatOnDark)
+                    }
                 }
-            },
-            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                containerColor = Color(0xFF111827),
-                titleContentColor = Color.White,
-                actionIconContentColor = Color.White
             )
-        )
-    }) { padding ->
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -402,30 +358,32 @@ fun ResultsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2937)),
-                shape = RoundedCornerShape(20.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(resultText, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    Text(
-                        text = "Target: ${state.target}",
-                        color = Color(0xFF9CA3AF)
-                    )
-                    Text(
-                        text = "Final value: ${state.runningValue ?: 0}",
-                        color = Color(0xFFFBBF24)
-                    )
-                    Text(
-                        text = "Moves used: ${state.moveIndex} / 4",
-                        color = Color(0xFF9CA3AF)
-                    )
-                }
+            BeatCard {
+                Text(resultText, color = BeatOnDark, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Target",
+                    color = BeatMuted
+                )
+                TargetPill(
+                    value = state.target.toString(),
+                    modifier = Modifier.padding(top = 4.dp),
+                    fontSize = 22.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Final value: ${state.runningValue ?: 0}",
+                    color = BeatOnDark
+                )
+                Text(
+                    text = "Moves used: ${state.moveIndex} / 4",
+                    color = BeatMuted
+                )
             }
 
             Text(
                 text = "Used grid",
-                color = Color.White,
+                color = BeatOnDark,
                 fontWeight = FontWeight.SemiBold
             )
 
@@ -437,21 +395,12 @@ fun ResultsScreen(
             ) {
                 itemsIndexed(state.grid) { index, value ->
                     val used = state.usedIndices.contains(index)
-                    Card(
-                        modifier = Modifier.aspectRatio(1f),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (used) Color(0xFF22C55E) else Color(0xFF1F2937)
-                        ),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = value.toString(),
-                                color = if (used) Color.Black else Color.White,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
+                    GridTile(
+                        value = value,
+                        state = if (used) TileState.Used else TileState.Available,
+                        enabled = false,
+                        onClick = {}
+                    )
                 }
             }
 
@@ -459,21 +408,17 @@ fun ResultsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Button(
-                    onClick = onPlayAgain,
+                BeatSecondaryButton(
+                    label = "Try again",
                     enabled = state.triesRemaining > 0 && state.result == AttemptOutcome.Lost,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
-                ) {
-                    Text("Try again")
-                }
-                Button(
-                    onClick = onHome,
+                    onClick = onPlayAgain
+                )
+                BeatTertiaryButton(
+                    label = "Daily",
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4B5563))
-                ) {
-                    Text("Daily")
-                }
+                    onClick = onHome
+                )
             }
         }
     }
@@ -481,46 +426,47 @@ fun ResultsScreen(
 
 @Composable
 fun ProgressCard(state: GameState) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF111827)),
-        shape = RoundedCornerShape(18.dp)
+    BeatCard(
+        containerColor = BeatCardSecondary
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Target ${state.target}",
-                color = Color(0xFFFBBF24),
-                fontWeight = FontWeight.Bold
-            )
-            Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFF374151))
-            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Column {
-                    Text("Move", color = Color(0xFF9CA3AF))
-                    Text(
-                        text = "${state.moveIndex + 1} / 4",
-                        color = Color.White
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("Running", color = Color(0xFF9CA3AF))
-                    Text(
-                        text = (state.runningValue ?: 0).toString(),
-                        color = Color.White
-                    )
-                }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Target",
+                    color = BeatMuted,
+                    fontWeight = FontWeight.SemiBold
+                )
+                TargetPill(
+                    value = state.target.toString(),
+                    modifier = Modifier.padding(top = 6.dp),
+                    fontSize = 18.sp
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text("Move", color = BeatMuted)
+                Text(
+                    text = "${state.moveIndex + 1} / 4",
+                    color = BeatOnDark,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text("Running", color = BeatMuted)
+                Text(
+                    text = (state.runningValue ?: 0).toString(),
+                    color = BeatOnDark,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
-    }
-}
-
-@Composable
-fun OperationButton(label: String, enabled: Boolean, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.fillMaxWidth(),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED))
-    ) {
-        Text(label, fontWeight = FontWeight.Bold)
+        Divider(modifier = Modifier.padding(vertical = 12.dp), color = BeatOutline)
+        Text(
+            text = "Tries left: ${state.triesRemaining} / 5",
+            color = BeatMuted
+        )
     }
 }
 
@@ -535,4 +481,282 @@ sealed class Screen(val route: String) {
     data object SelectNumber : Screen("select")
     data object ApplyOperation : Screen("apply")
     data object Results : Screen("results")
+}
+
+enum class TileState {
+    Available,
+    Used,
+    Selected
+}
+
+@Composable
+fun BeatTopBar(
+    title: String,
+    subtitle: String,
+    onBack: (() -> Unit)? = null,
+    actions: @Composable RowScope.() -> Unit = {}
+) {
+    TopAppBar(
+        title = {
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.displaySmall,
+                    color = BeatOnDark
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = BeatMuted
+                )
+            }
+        },
+        navigationIcon = {
+            if (onBack != null) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = BeatOnDark)
+                }
+            }
+        },
+        actions = actions,
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent,
+            titleContentColor = BeatOnDark,
+            navigationIconContentColor = BeatOnDark,
+            actionIconContentColor = BeatOnDark
+        )
+    )
+}
+
+@Composable
+fun BeatCard(
+    modifier: Modifier = Modifier,
+    containerColor: Color = BeatCard,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor)
+    ) {
+        Column(modifier = Modifier.padding(20.dp), content = content)
+    }
+}
+
+@Composable
+fun TargetPill(
+    value: String,
+    modifier: Modifier = Modifier,
+    fontSize: androidx.compose.ui.unit.TextUnit = 32.sp
+) {
+    val pillGradient = Brush.horizontalGradient(listOf(BeatTarget, BeatTargetDeep))
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(pillGradient)
+            .padding(horizontal = 18.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = value,
+            color = Color(0xFF2B1300),
+            fontSize = fontSize,
+            fontWeight = FontWeight.ExtraBold
+        )
+    }
+}
+
+@Composable
+fun GridTile(
+    value: Int,
+    state: TileState,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(12.dp)
+    val brush = when (state) {
+        TileState.Available -> Brush.linearGradient(listOf(BeatTileHighlight, BeatTileBase))
+        TileState.Used -> Brush.linearGradient(listOf(BeatTileUsed, BeatTileUsedDark))
+        TileState.Selected -> Brush.linearGradient(listOf(BeatGreen, BeatGreenDeep))
+    }
+    val borderColor = when (state) {
+        TileState.Selected -> BeatGreen
+        TileState.Used -> BeatOutline
+        TileState.Available -> BeatOutline
+    }
+    val textColor = when (state) {
+        TileState.Selected -> Color(0xFF062B1A)
+        TileState.Used -> BeatMuted
+        TileState.Available -> BeatOnDark
+    }
+
+    PressableSurface(
+        modifier = Modifier.aspectRatio(1f),
+        enabled = enabled,
+        shape = shape,
+        brush = brush,
+        border = BorderStroke(1.dp, borderColor),
+        onClick = onClick
+    ) {
+        Text(
+            text = value.toString(),
+            fontWeight = FontWeight.Bold,
+            color = textColor
+        )
+    }
+}
+
+@Composable
+fun OperationButton(
+    label: String,
+    colors: List<Color>,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    val brush = Brush.verticalGradient(colors)
+    PressableSurface(
+        modifier = Modifier.fillMaxWidth(),
+        enabled = enabled,
+        shape = RoundedCornerShape(18.dp),
+        brush = brush,
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
+        onClick = onClick,
+        rippleColor = Color.White
+    ) {
+        Text(
+            text = label,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 22.sp,
+            color = Color.White
+        )
+    }
+}
+
+@Composable
+fun BeatPrimaryButton(
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    leadingIcon: @Composable (() -> Unit)? = null
+) {
+    val brush = Brush.linearGradient(listOf(BeatBlue, BeatBlueDeep))
+    PressableSurface(
+        modifier = Modifier.fillMaxWidth(),
+        enabled = enabled,
+        shape = RoundedCornerShape(20.dp),
+        brush = brush,
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+        onClick = onClick,
+        rippleColor = Color.White
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (leadingIcon != null) {
+                leadingIcon()
+                Spacer(modifier = Modifier.size(8.dp))
+            }
+            Text(
+                text = label,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                color = Color.White
+            )
+        }
+    }
+}
+
+@Composable
+fun BeatSecondaryButton(
+    label: String,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val brush = Brush.linearGradient(listOf(BeatBlue, BeatBlueDeep))
+    PressableSurface(
+        modifier = modifier,
+        enabled = enabled,
+        shape = RoundedCornerShape(18.dp),
+        brush = brush,
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+        onClick = onClick,
+        rippleColor = Color.White
+    ) {
+        Text(
+            text = label,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+    }
+}
+
+@Composable
+fun BeatTertiaryButton(
+    label: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val brush = Brush.linearGradient(listOf(BeatCardSecondary, BeatCard))
+    PressableSurface(
+        modifier = modifier,
+        enabled = true,
+        shape = RoundedCornerShape(18.dp),
+        brush = brush,
+        border = BorderStroke(1.dp, BeatOutline),
+        onClick = onClick,
+        rippleColor = Color.White.copy(alpha = 0.6f)
+    ) {
+        Text(
+            text = label,
+            fontWeight = FontWeight.Bold,
+            color = BeatOnDark
+        )
+    }
+}
+
+@Composable
+fun PressableSurface(
+    modifier: Modifier,
+    enabled: Boolean,
+    shape: RoundedCornerShape,
+    brush: Brush,
+    border: BorderStroke? = null,
+    rippleColor: Color = Color.White,
+    onClick: () -> Unit,
+    content: @Composable BoxScope.() -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed && enabled) 0.96f else 1f,
+        label = "press-scale"
+    )
+
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(
+                elevation = 8.dp,
+                shape = shape,
+                ambientColor = Color.Black.copy(alpha = 0.35f),
+                spotColor = Color.Black.copy(alpha = 0.5f)
+            )
+            .then(if (border != null) Modifier.border(border, shape) else Modifier)
+            .background(brush, shape)
+            .clip(shape)
+            .clickable(
+                enabled = enabled,
+                interactionSource = interactionSource,
+                indication = androidx.compose.material.ripple.rememberRipple(
+                    bounded = true,
+                    color = rippleColor
+                ),
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center,
+        content = content
+    )
 }
