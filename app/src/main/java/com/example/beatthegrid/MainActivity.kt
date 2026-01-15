@@ -35,7 +35,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -46,6 +45,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -511,7 +511,6 @@ private fun LazyGridScope.gridTiles(
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun BeatTopBar(
     title: String,
@@ -737,7 +736,6 @@ fun BeatTertiaryButton(
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun PressableSurface(
     modifier: Modifier,
@@ -774,10 +772,7 @@ fun PressableSurface(
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,
-                indication = androidx.compose.material.ripple.rememberRipple(
-                    bounded = true,
-                    color = rippleColor
-                ),
+                indication = ripple(bounded = true, color = rippleColor),
                 onClick = onClick
             ),
         contentAlignment = Alignment.Center,
