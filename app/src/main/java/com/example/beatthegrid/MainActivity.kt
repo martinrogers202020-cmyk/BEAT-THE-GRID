@@ -1,5 +1,6 @@
 package com.example.beatthegrid
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -25,8 +26,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -54,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,6 +79,7 @@ class MainActivity : ComponentActivity() {
 fun BeatTheGridApp(viewModel: GameViewModel = viewModel()) {
     val navController = rememberNavController()
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
 
     BeatTheGridTheme {
         NavHost(
@@ -122,7 +126,11 @@ fun BeatTheGridApp(viewModel: GameViewModel = viewModel()) {
                             type = "text/plain"
                             putExtra(Intent.EXTRA_TEXT, shareText)
                         }
-                        startActivity(Intent.createChooser(intent, "Share results"))
+                        val chooser = Intent.createChooser(intent, "Share results")
+                        if (context !is Activity) {
+                            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(chooser)
                     },
                     onPlayAgain = {
                         viewModel.startAttempt()
@@ -239,21 +247,12 @@ fun SelectNumberScreen(state: GameState, onCellSelected: (Int) -> Unit, onBack: 
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                itemsIndexed(state.grid) { index, value ->
-                    val used = state.usedIndices.contains(index)
-                    val selected = state.selectedIndex == index
-                    val tileState = when {
-                        selected -> TileState.Selected
-                        used -> TileState.Used
-                        else -> TileState.Available
-                    }
-                    GridTile(
-                        value = value,
-                        state = tileState,
-                        enabled = !used,
-                        onClick = { onCellSelected(index) }
-                    )
-                }
+                gridTiles(
+                    grid = state.grid,
+                    usedIndices = state.usedIndices,
+                    selectedIndex = state.selectedIndex,
+                    onCellSelected = onCellSelected
+                )
             }
         }
     }
@@ -393,15 +392,13 @@ fun ResultsScreen(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                itemsIndexed(state.grid) { index, value ->
-                    val used = state.usedIndices.contains(index)
-                    GridTile(
-                        value = value,
-                        state = if (used) TileState.Used else TileState.Available,
-                        enabled = false,
-                        onClick = {}
-                    )
-                }
+                gridTiles(
+                    grid = state.grid,
+                    usedIndices = state.usedIndices,
+                    selectedIndex = null,
+                    enabled = false,
+                    onCellSelected = {}
+                )
             }
 
             Row(
@@ -487,6 +484,30 @@ enum class TileState {
     Available,
     Used,
     Selected
+}
+
+private fun LazyGridScope.gridTiles(
+    grid: List<Int>,
+    usedIndices: Set<Int>,
+    selectedIndex: Int?,
+    enabled: Boolean = true,
+    onCellSelected: (Int) -> Unit
+) {
+    itemsIndexed(grid) { index, value ->
+        val used = usedIndices.contains(index)
+        val selected = selectedIndex == index
+        val tileState = when {
+            selected -> TileState.Selected
+            used -> TileState.Used
+            else -> TileState.Available
+        }
+        GridTile(
+            value = value,
+            state = tileState,
+            enabled = enabled && !used,
+            onClick = { onCellSelected(index) }
+        )
+    }
 }
 
 @Composable
