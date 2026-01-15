@@ -35,6 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -510,6 +511,7 @@ private fun LazyGridScope.gridTiles(
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun BeatTopBar(
     title: String,
@@ -735,6 +737,7 @@ fun BeatTertiaryButton(
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun PressableSurface(
     modifier: Modifier,
