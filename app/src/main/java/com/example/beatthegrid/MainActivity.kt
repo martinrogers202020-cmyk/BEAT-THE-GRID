@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -59,6 +60,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -170,45 +172,69 @@ fun DailyScreen(state: GameState, onStart: () -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .widthIn(max = 420.dp)
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .align(Alignment.Center),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                BeatCard {
+                BeatCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = 12.dp
+                ) {
                     Text(
                         text = "Daily Target",
                         color = BeatMuted,
-                        fontWeight = FontWeight.SemiBold
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.sp
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    TargetPill(value = state.target.toString())
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TargetPill(
+                        value = state.target.toString(),
+                        fontSize = 52.sp,
+                        colors = listOf(BeatTarget, BeatTargetDeep, BeatTargetDeep),
+                        shadowElevation = 14.dp,
+                        shadowColor = BeatTargetDeep
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "Tries left: ${state.triesRemaining} / 5",
-                        color = BeatOnDark
+                        color = BeatMuted,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
 
                 BeatCard(
-                    containerColor = BeatCardSecondary
+                    modifier = Modifier.fillMaxWidth(),
+                    containerColor = BeatCardSecondary.copy(alpha = 0.9f),
+                    contentPadding = 16.dp
                 ) {
                     Text(
                         text = "Rules",
                         color = BeatOnDark,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Pick a cell, then apply an operation. You get 4 moves. +2, -3, ×2, ÷2 operations are allowed.",
-                        color = BeatMuted
+                        color = BeatMuted,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Win by matching the target before time runs out. Each miss costs a daily try.",
-                        color = BeatMuted
+                        color = BeatMuted,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
                     )
                 }
 
                 BeatPrimaryButton(
+                    modifier = Modifier.fillMaxWidth(),
                     label = if (state.completed) "Completed" else "Start Run",
                     enabled = state.triesRemaining > 0 && !state.completed,
                     onClick = onStart,
@@ -557,15 +583,18 @@ fun BeatTopBar(
 fun BeatCard(
     modifier: Modifier = Modifier,
     containerColor: Color = BeatCard,
+    contentPadding: Dp = 20.dp,
+    cornerRadius: Dp = 24.dp,
+    elevation: Dp = 6.dp,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        shape = RoundedCornerShape(cornerRadius),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
         colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
-        Column(modifier = Modifier.padding(20.dp), content = content)
+        Column(modifier = Modifier.padding(contentPadding), content = content)
     }
 }
 
@@ -573,11 +602,26 @@ fun BeatCard(
 fun TargetPill(
     value: String,
     modifier: Modifier = Modifier,
-    fontSize: androidx.compose.ui.unit.TextUnit = 32.sp
+    fontSize: androidx.compose.ui.unit.TextUnit = 32.sp,
+    colors: List<Color> = listOf(BeatTarget, BeatTargetDeep),
+    shadowElevation: Dp = 0.dp,
+    shadowColor: Color = BeatTargetDeep
 ) {
-    val pillGradient = Brush.horizontalGradient(listOf(BeatTarget, BeatTargetDeep))
+    val pillGradient = Brush.horizontalGradient(colors)
     Box(
         modifier = modifier
+            .then(
+                if (shadowElevation > 0.dp) {
+                    Modifier.shadow(
+                        elevation = shadowElevation,
+                        shape = RoundedCornerShape(999.dp),
+                        ambientColor = shadowColor.copy(alpha = 0.6f),
+                        spotColor = shadowColor.copy(alpha = 0.7f)
+                    )
+                } else {
+                    Modifier
+                }
+            )
             .clip(RoundedCornerShape(999.dp))
             .background(pillGradient)
             .padding(horizontal = 18.dp, vertical = 8.dp),
@@ -688,18 +732,28 @@ fun OperationButton(
 
 @Composable
 fun BeatPrimaryButton(
+    modifier: Modifier = Modifier,
     label: String,
     enabled: Boolean,
     onClick: () -> Unit,
     leadingIcon: @Composable (() -> Unit)? = null
 ) {
-    val brush = Brush.linearGradient(listOf(BeatBlue, BeatBlueDeep))
+    val brush = if (enabled) {
+        Brush.verticalGradient(listOf(BeatBlue, BeatBlueDeep))
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                BeatBlue.copy(alpha = 0.35f),
+                BeatBlueDeep.copy(alpha = 0.45f)
+            )
+        )
+    }
     PressableSurface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.height(58.dp),
         enabled = enabled,
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(24.dp),
         brush = brush,
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = if (enabled) 0.18f else 0.08f)),
         onClick = onClick,
         rippleColor = Color.White
     ) {
