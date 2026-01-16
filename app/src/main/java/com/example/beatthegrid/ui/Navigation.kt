@@ -7,8 +7,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.tween
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -24,7 +24,6 @@ import com.example.beatthegrid.GameViewModel
 @Composable
 fun BeatTheGridApp(viewModel: GameViewModel = viewModel()) {
     val navController = rememberNavController()
-    val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Daily.route
@@ -43,12 +42,14 @@ fun BeatTheGridApp(viewModel: GameViewModel = viewModel()) {
                 startDestination = Screen.Daily.route
             ) {
                 composable(Screen.Daily.route) {
+                    val state by viewModel.state.collectAsState()
                     DailyScreen(state = state, onStart = {
                         viewModel.startAttempt()
                         navController.navigate(Screen.SelectNumber.route)
                     })
                 }
                 composable(Screen.SelectNumber.route) {
+                    val state by viewModel.state.collectAsState()
                     SelectNumberScreen(
                         state = state,
                         onCellSelected = { index ->
@@ -71,6 +72,7 @@ fun BeatTheGridApp(viewModel: GameViewModel = viewModel()) {
                     )
                 }
                 composable(Screen.ApplyOperation.route) {
+                    val state by viewModel.state.collectAsState()
                     ApplyOperationScreen(
                         state = state,
                         onApply = { operation ->
@@ -81,6 +83,7 @@ fun BeatTheGridApp(viewModel: GameViewModel = viewModel()) {
                     )
                 }
                 composable(Screen.Results.route) {
+                    val state by viewModel.state.collectAsState()
                     ResultsScreen(
                         state = state,
                         onShare = { shareText ->
