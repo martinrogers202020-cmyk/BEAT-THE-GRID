@@ -6,10 +6,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,7 +64,7 @@ fun GridTile(
     val backgroundColor = when (state) {
         TileState.Available -> colorScheme.surfaceVariant
         TileState.Selected -> colorScheme.primaryContainer
-        TileState.Used -> colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        TileState.Used -> colorScheme.surfaceVariant.copy(alpha = 0.35f)
     }
     val borderColor = when (state) {
         TileState.Available -> colorScheme.outlineVariant
@@ -70,7 +74,7 @@ fun GridTile(
     val contentColor = when (state) {
         TileState.Available -> colorScheme.onSurface
         TileState.Selected -> colorScheme.onPrimaryContainer
-        TileState.Used -> colorScheme.onSurfaceVariant
+        TileState.Used -> colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
     }
     val tileModifier = if (enabled) {
         Modifier.clickable(onClick = onClick)
@@ -85,7 +89,7 @@ fun GridTile(
         shape = RoundedCornerShape(12.dp),
         color = backgroundColor,
         tonalElevation = if (state == TileState.Selected) 2.dp else 0.dp,
-        border = BorderStroke(1.dp, borderColor)
+        border = BorderStroke(if (state == TileState.Selected) 2.dp else 1.dp, borderColor)
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -97,6 +101,16 @@ fun GridTile(
                 fontWeight = FontWeight.SemiBold,
                 color = contentColor
             )
+            if (state == TileState.Used) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Used",
+                    tint = colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                )
+            }
         }
     }
 }

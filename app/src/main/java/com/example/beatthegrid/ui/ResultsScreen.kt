@@ -62,7 +62,7 @@ fun ResultsScreen(
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Final value: ${state.runningValue ?: 0}",
+                text = "Final value: ${state.runningValue}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -127,5 +127,5 @@ fun ResultsScreen(
 fun buildShareText(state: GameState): String {
     val status = if (state.result == AttemptOutcome.Won) "WIN" else "LOSE"
     val dayLabel = String.format(Locale.US, "%d", state.dayIndex + 1)
-    return "Beat the Grid Day $dayLabel: $status. Target ${state.target}, final ${state.runningValue ?: 0}. Moves ${state.moveIndex}/4."
+    return "Beat the Grid Day $dayLabel: $status. Target ${state.target}, final ${state.runningValue}. Moves ${state.moveIndex}/4."
 }

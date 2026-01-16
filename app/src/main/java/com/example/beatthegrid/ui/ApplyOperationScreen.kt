@@ -20,7 +20,7 @@ import com.example.beatthegrid.ui.components.ProgressCard
 
 @Composable
 fun ApplyOperationScreen(state: GameState, onApply: (Operation) -> Unit, onBack: () -> Unit) {
-    val runningValue = state.runningValue ?: 0
+    val runningValue = state.runningValue
     val selectionValue = state.selectedIndex?.let { state.grid[it] } ?: 0
     val canDivide = selectionValue != 0 && runningValue % selectionValue == 0
 
@@ -43,14 +43,20 @@ fun ApplyOperationScreen(state: GameState, onApply: (Operation) -> Unit, onBack:
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Running value",
+                text = "Start: ${state.startValue}",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = runningValue.toString(),
+                text = "Current: $runningValue",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Target: ${state.target}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
@@ -70,7 +76,7 @@ fun ApplyOperationScreen(state: GameState, onApply: (Operation) -> Unit, onBack:
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { onApply(Operation.Subtract) }
             ) {
-                Text(text = "-")
+                Text(text = "−")
             }
             FilledTonalButton(
                 modifier = Modifier.fillMaxWidth(),
