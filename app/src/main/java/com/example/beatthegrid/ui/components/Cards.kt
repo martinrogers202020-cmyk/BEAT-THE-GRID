@@ -67,7 +67,7 @@ fun ProgressCard(state: GameState, modifier: Modifier = Modifier) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = (state.runningValue ?: 0).toString(),
+                        text = state.runningValue.toString(),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
