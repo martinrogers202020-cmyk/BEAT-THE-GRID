@@ -65,8 +65,8 @@ fun GridTile(
     onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val selectedBackground = Color(0xFFFF3B30)
-    val selectedBorder = Color(0xFFD7261C)
+    val selectedBackground = colorScheme.errorContainer
+    val selectedBorder = colorScheme.error
     val backgroundColor = when (state) {
         TileState.Available -> colorScheme.surfaceVariant
         TileState.Selected -> selectedBackground
