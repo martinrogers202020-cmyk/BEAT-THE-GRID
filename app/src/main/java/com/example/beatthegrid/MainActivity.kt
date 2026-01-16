@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,7 +44,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -59,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
@@ -267,28 +268,32 @@ fun SelectNumberScreen(state: GameState, onCellSelected: (Int) -> Unit, onBack: 
                 .fillMaxSize()
                 .background(gradient)
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             ProgressCard(
                 state = state,
                 modifier = Modifier.fillMaxWidth()
             )
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(6),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            GridTray(
                 modifier = Modifier
                     .fillMaxWidth()
                     .widthIn(max = 420.dp)
             ) {
-                gridTiles(
-                    grid = state.grid,
-                    usedIndices = state.usedIndices,
-                    selectedIndex = state.selectedIndex,
-                    onCellSelected = onCellSelected
-                )
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(6),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    gridTiles(
+                        grid = state.grid,
+                        usedIndices = state.usedIndices,
+                        selectedIndex = state.selectedIndex,
+                        onCellSelected = onCellSelected
+                    )
+                }
             }
         }
     }
@@ -422,19 +427,21 @@ fun ResultsScreen(
                 fontWeight = FontWeight.SemiBold
             )
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(6),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                gridTiles(
-                    grid = state.grid,
-                    usedIndices = state.usedIndices,
-                    selectedIndex = null,
-                    enabled = false,
-                    onCellSelected = {}
-                )
+            GridTray(modifier = Modifier.fillMaxWidth()) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(6),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    gridTiles(
+                        grid = state.grid,
+                        usedIndices = state.usedIndices,
+                        selectedIndex = null,
+                        enabled = false,
+                        onCellSelected = {}
+                    )
+                }
             }
 
             Row(
@@ -459,10 +466,7 @@ fun ResultsScreen(
 
 @Composable
 fun ProgressCard(state: GameState, modifier: Modifier = Modifier) {
-    BeatCard(
-        modifier = modifier,
-        containerColor = BeatCardSecondary
-    ) {
+    BeatHudCard(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -568,17 +572,29 @@ fun BeatTopBar(
             } else {
                 Spacer(modifier = Modifier.size(48.dp))
             }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.displayMedium,
-                    color = BeatOnDark
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = BeatMuted
-                )
+            Box(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(BeatHudPanel, RoundedCornerShape(20.dp))
+                        .border(BorderStroke(1.dp, BeatHudBorder), RoundedCornerShape(20.dp))
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                ) {
+                    Text(
+                        text = title,
+                        color = BeatOnDark,
+                        fontSize = 42.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 0.5.sp
+                    )
+                    Text(
+                        text = subtitle,
+                        color = BeatOnDark.copy(alpha = 0.9f),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.4.sp
+                    )
+                }
             }
             Row(
                 horizontalArrangement = Arrangement.End,
@@ -605,6 +621,78 @@ fun BeatCard(
         colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
         Column(modifier = Modifier.padding(contentPadding), content = content)
+    }
+}
+
+@Composable
+fun BeatHudCard(
+    modifier: Modifier = Modifier,
+    contentPadding: Dp = 18.dp,
+    cornerRadius: Dp = 22.dp,
+    elevation: Dp = 10.dp,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val shape = RoundedCornerShape(cornerRadius)
+    Box(
+        modifier = modifier
+            .shadow(
+                elevation = elevation,
+                shape = shape,
+                ambientColor = Color.Black.copy(alpha = 0.4f),
+                spotColor = Color.Black.copy(alpha = 0.6f)
+            )
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(BeatCardSecondary, BeatCard)
+                ),
+                shape
+            )
+            .border(BorderStroke(1.dp, BeatHudBorder), shape)
+            .clip(shape)
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.12f),
+                            Color.Transparent
+                        ),
+                        start = Offset.Zero,
+                        end = Offset(300f, 220f)
+                    )
+                )
+        )
+        Column(modifier = Modifier.padding(contentPadding), content = content)
+    }
+}
+
+@Composable
+fun GridTray(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    val shape = RoundedCornerShape(26.dp)
+    Box(
+        modifier = modifier
+            .shadow(
+                elevation = 12.dp,
+                shape = shape,
+                ambientColor = Color.Black.copy(alpha = 0.35f),
+                spotColor = Color.Black.copy(alpha = 0.6f)
+            )
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(BeatGridTrayTop, BeatGridTrayBottom)
+                ),
+                shape
+            )
+            .border(BorderStroke(1.dp, BeatGridTrayBorder), shape)
+            .clip(shape)
+            .padding(12.dp)
+    ) {
+        content()
     }
 }
 
@@ -656,57 +744,80 @@ fun GridTile(
     val shape = RoundedCornerShape(24.dp)
     val brush = when (state) {
         TileState.Available -> Brush.linearGradient(
-            listOf(
-                BeatTileHighlight,
-                BeatTileBase,
-                BeatTileBase
-            )
+            colors = listOf(BeatTileHighlight, BeatTileBase, BeatTileShadow),
+            start = Offset(0f, 0f),
+            end = Offset(300f, 320f)
         )
-        TileState.Used -> Brush.linearGradient(listOf(BeatTileUsed, BeatTileUsedDark))
-        TileState.Selected -> Brush.linearGradient(listOf(BeatGreen, BeatGreenDeep))
+        TileState.Used -> Brush.linearGradient(
+            colors = listOf(BeatTileUsed, BeatTileUsedDark),
+            start = Offset(0f, 0f),
+            end = Offset(280f, 300f)
+        )
+        TileState.Selected -> Brush.linearGradient(
+            colors = listOf(BeatGreenGlow, BeatGreen, BeatGreenDeep),
+            start = Offset(0f, 0f),
+            end = Offset(300f, 320f)
+        )
     }
     val borderColor = when (state) {
-        TileState.Selected -> BeatGreen.copy(alpha = 0.95f)
-        TileState.Used -> BeatOutline.copy(alpha = 0.6f)
-        TileState.Available -> BeatOutline.copy(alpha = 0.85f)
+        TileState.Selected -> BeatGreenGlow.copy(alpha = 0.85f)
+        TileState.Used -> BeatOutline.copy(alpha = 0.5f)
+        TileState.Available -> BeatTileEdgeHighlight.copy(alpha = 0.65f)
     }
     val textColor = when (state) {
         TileState.Selected -> Color(0xFF062B1A)
-        TileState.Used -> BeatMuted.copy(alpha = 0.7f)
+        TileState.Used -> BeatMuted.copy(alpha = 0.65f)
         TileState.Available -> BeatOnDark
     }
     val shadowElevation = when (state) {
-        TileState.Selected -> 18.dp
-        TileState.Available -> 12.dp
-        TileState.Used -> 6.dp
+        TileState.Selected -> 22.dp
+        TileState.Available -> 14.dp
+        TileState.Used -> 0.dp
     }
     val shadowColor = when (state) {
-        TileState.Selected -> BeatGreen
+        TileState.Selected -> BeatGreenGlow
         TileState.Available -> BeatBlueDeep
-        TileState.Used -> BeatTileUsedDark
+        TileState.Used -> Color.Transparent
+    }
+    val highlightColor = when (state) {
+        TileState.Selected -> BeatGreenGlow.copy(alpha = 0.7f)
+        TileState.Used -> BeatTileEdgeHighlight.copy(alpha = 0.25f)
+        TileState.Available -> BeatTileEdgeHighlight.copy(alpha = 0.55f)
     }
     var appeared by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         appeared = true
     }
+    val tileScale by animateFloatAsState(
+        targetValue = if (state == TileState.Selected) 1.03f else 1f,
+        animationSpec = tween(durationMillis = 160),
+        label = "tile-scale"
+    )
     val numberScale by animateFloatAsState(
         targetValue = when {
             !appeared -> 0.92f
             state == TileState.Selected -> 1.08f
             else -> 1f
         },
+        animationSpec = tween(durationMillis = 140),
         label = "tile-number-scale"
     )
 
     PressableSurface(
-        modifier = Modifier.aspectRatio(1f),
+        modifier = Modifier
+            .aspectRatio(1f)
+            .graphicsLayer {
+                scaleX = tileScale
+                scaleY = tileScale
+            },
         enabled = enabled,
         shape = shape,
         brush = brush,
         border = BorderStroke(if (state == TileState.Selected) 2.dp else 1.dp, borderColor),
         shadowElevation = shadowElevation,
         shadowColor = shadowColor,
-        pressedScale = if (state == TileState.Selected) 0.98f else 0.96f,
+        pressedScale = 0.95f,
+        disabledAlpha = if (state == TileState.Used) 0.5f else 0.7f,
         onClick = onClick
     ) {
         Box(
@@ -716,38 +827,46 @@ fun GridTile(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .padding(5.dp)
-                    .border(
-                        BorderStroke(
-                            1.dp,
-                            BeatTileEdgeHighlight.copy(
-                                alpha = if (state == TileState.Available) 0.35f else 0.22f
+                    .clip(shape)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = if (state == TileState.Selected) 0.22f else 0.14f),
+                                Color.Transparent,
+                                Color.Transparent
                             )
-                        ),
-                        RoundedCornerShape(18.dp)
+                        )
                     )
             )
             Box(
                 modifier = Modifier
-                    .matchParentSize()
-                    .padding(3.dp)
-                    .border(
-                        BorderStroke(
-                            1.dp,
-                            BeatTileEdgeShadow.copy(
-                                alpha = if (state == TileState.Selected) 0.65f else 0.45f
-                            )
-                        ),
-                        RoundedCornerShape(19.dp)
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .align(Alignment.TopCenter)
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(highlightColor, Color.Transparent)
+                        )
                     )
             )
             if (state == TileState.Selected) {
                 Box(
                     modifier = Modifier
                         .matchParentSize()
-                        .padding(2.dp)
+                        .padding(3.dp)
                         .border(
-                            BorderStroke(2.dp, BeatGreen.copy(alpha = 0.6f)),
+                            BorderStroke(2.dp, BeatGreenGlow.copy(alpha = 0.65f)),
+                            RoundedCornerShape(20.dp)
+                        )
+                )
+            }
+            if (state != TileState.Used) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .padding(4.dp)
+                        .border(
+                            BorderStroke(1.dp, BeatTileEdgeShadow.copy(alpha = 0.5f)),
                             RoundedCornerShape(20.dp)
                         )
                 )
@@ -755,7 +874,7 @@ fun GridTile(
             Text(
                 text = value.toString(),
                 fontWeight = FontWeight.ExtraBold,
-                fontSize = 20.sp,
+                fontSize = 24.sp,
                 color = textColor,
                 modifier = Modifier.graphicsLayer {
                     scaleX = numberScale
@@ -897,7 +1016,8 @@ fun PressableSurface(
     rippleColor: Color = Color.White,
     shadowElevation: Dp = 8.dp,
     shadowColor: Color = Color.Black,
-    pressedScale: Float = 0.96f,
+    pressedScale: Float = 0.95f,
+    disabledAlpha: Float = 0.7f,
     onClick: () -> Unit,
     content: @Composable BoxScope.() -> Unit
 ) {
@@ -905,6 +1025,7 @@ fun PressableSurface(
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (pressed && enabled) pressedScale else 1f,
+        animationSpec = tween(durationMillis = 90),
         label = "press-scale"
     )
 
@@ -913,7 +1034,7 @@ fun PressableSurface(
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
-                alpha = if (enabled) 1f else 0.7f
+                alpha = if (enabled) 1f else disabledAlpha
             }
             .shadow(
                 elevation = shadowElevation,
