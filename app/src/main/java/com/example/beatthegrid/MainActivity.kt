@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -534,12 +535,12 @@ fun BeatTopBar(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.displaySmall,
+                    style = MaterialTheme.typography.displayMedium,
                     color = BeatOnDark
                 )
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     color = BeatMuted
                 )
             }
@@ -623,11 +624,35 @@ fun GridTile(
         border = BorderStroke(1.dp, borderColor),
         onClick = onClick
     ) {
-        Text(
-            text = value.toString(),
-            fontWeight = FontWeight.Bold,
-            color = textColor
-        )
+        Box(
+            modifier = Modifier.matchParentSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .padding(4.dp)
+                    .border(
+                        BorderStroke(1.dp, BeatTileEdgeHighlight.copy(alpha = 0.35f)),
+                        RoundedCornerShape(10.dp)
+                    )
+            )
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .padding(2.dp)
+                    .border(
+                        BorderStroke(1.dp, BeatTileEdgeShadow.copy(alpha = 0.5f)),
+                        RoundedCornerShape(11.dp)
+                    )
+            )
+            Text(
+                text = value.toString(),
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 18.sp,
+                color = textColor
+            )
+        }
     }
 }
 
@@ -638,7 +663,11 @@ fun OperationButton(
     enabled: Boolean = true,
     onClick: () -> Unit
 ) {
-    val brush = Brush.verticalGradient(colors)
+    val brush = if (enabled) {
+        Brush.verticalGradient(colors)
+    } else {
+        Brush.verticalGradient(listOf(BeatDisabledButton, BeatDisabledButtonDeep))
+    }
     PressableSurface(
         modifier = Modifier.fillMaxWidth(),
         enabled = enabled,
@@ -652,7 +681,7 @@ fun OperationButton(
             text = label,
             fontWeight = FontWeight.ExtraBold,
             fontSize = 22.sp,
-            color = Color.White
+            color = if (enabled) Color.White else BeatMuted
         )
     }
 }
@@ -761,6 +790,7 @@ fun PressableSurface(
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
+                alpha = if (enabled) 1f else 0.7f
             }
             .shadow(
                 elevation = 8.dp,
