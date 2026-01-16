@@ -33,8 +33,10 @@ import java.util.Locale
 fun ResultsScreen(
     state: GameState,
     onShare: (String) -> Unit,
+    onHome: () -> Unit,
     onPlayAgain: () -> Unit,
-    onHome: () -> Unit
+    onNextLevel: () -> Unit = onPlayAgain,
+    onRetry: () -> Unit = onPlayAgain
 ) {
     val resultText = if (state.result == AttemptOutcome.Won) "Victory" else "Out of moves"
     val shareMessage = buildShareText(state)
@@ -109,10 +111,10 @@ fun ResultsScreen(
         ) {
             Button(
                 modifier = Modifier.weight(1f),
-                enabled = state.triesRemaining > 0 && state.result == AttemptOutcome.Lost,
-                onClick = onPlayAgain
+                enabled = state.result == AttemptOutcome.Won || state.triesRemaining > 0,
+                onClick = if (state.result == AttemptOutcome.Won) onNextLevel else onRetry
             ) {
-                Text(text = "Try again")
+                Text(text = if (state.result == AttemptOutcome.Won) "Continue" else "Try again")
             }
             OutlinedButton(
                 modifier = Modifier.weight(1f),

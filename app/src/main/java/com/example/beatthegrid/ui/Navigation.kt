@@ -104,6 +104,12 @@ fun BeatTheGridApp(viewModel: GameViewModel = viewModel()) {
                             }
                             context.startActivity(chooser)
                         },
+                        onPlayAgain = {
+                            viewModel.startAttempt()
+                            navController.navigate(Screen.SelectNumber.route) {
+                                launchSingleTop = true
+                            }
+                        },
                         onNextLevel = {
                             viewModel.startAttempt()
                             navController.navigate(Screen.SelectNumber.route) {
