@@ -1107,10 +1107,14 @@ fun PressableSurface(
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,
-                indication = rememberRipple(
-                    bounded = true,
-                    color = rippleColor
-                ),
+                indication = if (enabled) {
+                    rememberRipple(
+                        bounded = true,
+                        color = rippleColor
+                    )
+                } else {
+                    null
+                },
                 onClick = onClick
             ),
         contentAlignment = Alignment.Center,
