@@ -18,6 +18,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.beatthegrid.AttemptResult
 import com.example.beatthegrid.BeatTheGridTheme
 import com.example.beatthegrid.GameViewModel
 
@@ -76,8 +77,14 @@ fun BeatTheGridApp(viewModel: GameViewModel = viewModel()) {
                     ApplyOperationScreen(
                         state = state,
                         onApply = { operation ->
-                            viewModel.applyOperation(operation)
-                            navController.popBackStack()
+                            val result = viewModel.applyOperation(operation)
+                            if (result is AttemptResult.Finished) {
+                                navController.navigate(Screen.Results.route) {
+                                    launchSingleTop = true
+                                }
+                            } else {
+                                navController.popBackStack()
+                            }
                         },
                         onBack = { navController.popBackStack() }
                     )
@@ -97,13 +104,22 @@ fun BeatTheGridApp(viewModel: GameViewModel = viewModel()) {
                             }
                             context.startActivity(chooser)
                         },
-                        onPlayAgain = {
+                        onNextLevel = {
                             viewModel.startAttempt()
-                            navController.navigate(Screen.SelectNumber.route)
+                            navController.navigate(Screen.SelectNumber.route) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onRetry = {
+                            viewModel.startAttempt()
+                            navController.navigate(Screen.SelectNumber.route) {
+                                launchSingleTop = true
+                            }
                         },
                         onHome = {
                             navController.navigate(Screen.Daily.route) {
                                 popUpTo(Screen.Daily.route) { inclusive = true }
+                                launchSingleTop = true
                             }
                         }
                     )
