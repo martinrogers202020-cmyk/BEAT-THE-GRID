@@ -58,11 +58,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -252,6 +254,13 @@ fun DailyScreen(state: GameState, onStart: () -> Unit) {
 @Composable
 fun SelectNumberScreen(state: GameState, onCellSelected: (Int) -> Unit, onBack: () -> Unit) {
     val gradient = beatBackgroundGradient()
+    val trayShape = RoundedCornerShape(30.dp)
+    val trayBrush = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF171C2D),
+            Color(0xFF0B0F1A)
+        )
+    )
 
     Scaffold(
         containerColor = Color.Transparent,
@@ -276,11 +285,35 @@ fun SelectNumberScreen(state: GameState, onCellSelected: (Int) -> Unit, onBack: 
                 state = state,
                 modifier = Modifier.fillMaxWidth()
             )
-            GridTray(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .widthIn(max = 420.dp)
+                    .shadow(
+                        elevation = 24.dp,
+                        shape = trayShape,
+                        ambientColor = Color.Black.copy(alpha = 0.7f),
+                        spotColor = Color.Black.copy(alpha = 0.85f)
+                    )
+                    .background(trayBrush, trayShape)
+                    .border(BorderStroke(2.dp, Color(0xFF2B3450)), trayShape)
+                    .padding(16.dp)
             ) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clip(trayShape)
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.08f),
+                                    Color.Transparent
+                                ),
+                                start = Offset(0f, 0f),
+                                end = Offset(280f, 240f)
+                            )
+                        )
+                )
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(6),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -744,52 +777,63 @@ fun GridTile(
     val shape = RoundedCornerShape(24.dp)
     val brush = when (state) {
         TileState.Available -> Brush.linearGradient(
-            colors = listOf(BeatTileHighlight, BeatTileBase, BeatTileShadow),
+            colors = listOf(
+                Color(0xFF69C5FF),
+                Color(0xFF2A7CFF),
+                Color(0xFF0B3C8A)
+            ),
             start = Offset(0f, 0f),
-            end = Offset(300f, 320f)
+            end = Offset(320f, 340f)
         )
         TileState.Used -> Brush.linearGradient(
-            colors = listOf(BeatTileUsed, BeatTileUsedDark),
+            colors = listOf(
+                Color(0xFF4A5868).copy(alpha = 0.7f),
+                Color(0xFF2C3947).copy(alpha = 0.7f)
+            ),
             start = Offset(0f, 0f),
-            end = Offset(280f, 300f)
+            end = Offset(260f, 280f)
         )
         TileState.Selected -> Brush.linearGradient(
-            colors = listOf(BeatGreenGlow, BeatGreen, BeatGreenDeep),
+            colors = listOf(
+                Color(0xFF73FF9D),
+                Color(0xFF22E86D),
+                Color(0xFF0C9E4A)
+            ),
             start = Offset(0f, 0f),
-            end = Offset(300f, 320f)
+            end = Offset(320f, 340f)
         )
     }
     val borderColor = when (state) {
-        TileState.Selected -> BeatGreenGlow.copy(alpha = 0.85f)
-        TileState.Used -> BeatOutline.copy(alpha = 0.5f)
-        TileState.Available -> BeatTileEdgeHighlight.copy(alpha = 0.65f)
+        TileState.Selected -> Color(0xFFB2FFD1).copy(alpha = 0.95f)
+        TileState.Used -> Color(0xFF4C5B6C).copy(alpha = 0.45f)
+        TileState.Available -> Color(0xFF9FDBFF).copy(alpha = 0.7f)
     }
     val textColor = when (state) {
-        TileState.Selected -> Color(0xFF062B1A)
-        TileState.Used -> BeatMuted.copy(alpha = 0.65f)
-        TileState.Available -> BeatOnDark
+        TileState.Selected -> Color(0xFF053117)
+        TileState.Used -> Color(0xFF91A0B2)
+        TileState.Available -> Color(0xFFF5FBFF)
     }
     val shadowElevation = when (state) {
-        TileState.Selected -> 22.dp
-        TileState.Available -> 14.dp
+        TileState.Selected -> 26.dp
+        TileState.Available -> 18.dp
         TileState.Used -> 0.dp
     }
     val shadowColor = when (state) {
-        TileState.Selected -> BeatGreenGlow
-        TileState.Available -> BeatBlueDeep
+        TileState.Selected -> Color(0xFF3CFF8D)
+        TileState.Available -> Color(0xFF1F6BFF)
         TileState.Used -> Color.Transparent
     }
     val highlightColor = when (state) {
-        TileState.Selected -> BeatGreenGlow.copy(alpha = 0.7f)
-        TileState.Used -> BeatTileEdgeHighlight.copy(alpha = 0.25f)
-        TileState.Available -> BeatTileEdgeHighlight.copy(alpha = 0.55f)
+        TileState.Selected -> Color(0xFFD6FFE7).copy(alpha = 0.8f)
+        TileState.Used -> Color.White.copy(alpha = 0.06f)
+        TileState.Available -> Color.White.copy(alpha = 0.35f)
     }
     var appeared by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         appeared = true
     }
     val tileScale by animateFloatAsState(
-        targetValue = if (state == TileState.Selected) 1.03f else 1f,
+        targetValue = if (state == TileState.Selected) 1.04f else 1f,
         animationSpec = tween(durationMillis = 160),
         label = "tile-scale"
     )
@@ -813,11 +857,11 @@ fun GridTile(
         enabled = enabled,
         shape = shape,
         brush = brush,
-        border = BorderStroke(if (state == TileState.Selected) 2.dp else 1.dp, borderColor),
+        border = BorderStroke(if (state == TileState.Selected) 3.dp else 2.dp, borderColor),
         shadowElevation = shadowElevation,
         shadowColor = shadowColor,
-        pressedScale = 0.95f,
-        disabledAlpha = if (state == TileState.Used) 0.5f else 0.7f,
+        pressedScale = 0.94f,
+        disabledAlpha = if (state == TileState.Used) 0.35f else 0.7f,
         onClick = onClick
     ) {
         Box(
@@ -841,7 +885,7 @@ fun GridTile(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(3.dp)
+                    .height(4.dp)
                     .align(Alignment.TopCenter)
                     .background(
                         Brush.horizontalGradient(
@@ -855,7 +899,7 @@ fun GridTile(
                         .matchParentSize()
                         .padding(3.dp)
                         .border(
-                            BorderStroke(2.dp, BeatGreenGlow.copy(alpha = 0.65f)),
+                            BorderStroke(2.dp, Color(0xFFB9FFDA).copy(alpha = 0.75f)),
                             RoundedCornerShape(20.dp)
                         )
                 )
@@ -866,16 +910,23 @@ fun GridTile(
                         .matchParentSize()
                         .padding(4.dp)
                         .border(
-                            BorderStroke(1.dp, BeatTileEdgeShadow.copy(alpha = 0.5f)),
+                            BorderStroke(1.dp, Color(0xFF061B38).copy(alpha = 0.55f)),
                             RoundedCornerShape(20.dp)
                         )
                 )
             }
             Text(
                 text = value.toString(),
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 24.sp,
+                fontWeight = FontWeight.Black,
+                fontSize = 30.sp,
                 color = textColor,
+                style = TextStyle(
+                    shadow = Shadow(
+                        color = Color.Black.copy(alpha = 0.35f),
+                        offset = Offset(0f, 2f),
+                        blurRadius = 6f
+                    )
+                ),
                 modifier = Modifier.graphicsLayer {
                     scaleX = numberScale
                     scaleY = numberScale
