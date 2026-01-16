@@ -59,19 +59,23 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     fun selectCell(index: Int) {
         val current = _state.value
         if (current.usedIndices.contains(index) || current.result != AttemptOutcome.InProgress) return
-        val running = current.runningValue ?: current.grid[index]
+        val running = current.runningValue ?: 0
         _state.value = current.copy(selectedIndex = index, runningValue = running)
     }
 
     fun applyOperation(operation: Operation): AttemptResult {
         val current = _state.value
         val selected = current.selectedIndex ?: return AttemptResult.Continue
-        val running = current.runningValue ?: current.grid[selected]
+        val running = current.runningValue ?: 0
+        val tileValue = current.grid[selected]
+        if (operation == Operation.Divide && (tileValue == 0 || running % tileValue != 0)) {
+            return AttemptResult.Continue
+        }
         val updatedValue = when (operation) {
-            Operation.AddTwo -> running + 2
-            Operation.SubtractThree -> running - 3
-            Operation.MultiplyTwo -> running * 2
-            Operation.DivideTwo -> if (running % 2 == 0) running / 2 else running
+            Operation.Add -> running + tileValue
+            Operation.Subtract -> running - tileValue
+            Operation.Multiply -> running * tileValue
+            Operation.Divide -> running / tileValue
         }
 
         val newMoveIndex = current.moveIndex + 1
@@ -115,10 +119,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 }
 
 enum class Operation {
-    AddTwo,
-    SubtractThree,
-    MultiplyTwo,
-    DivideTwo
+    Add,
+    Subtract,
+    Multiply,
+    Divide
 }
 
 sealed class AttemptResult {
@@ -146,7 +150,7 @@ data class GameState(
 ) {
     fun resetForAttempt(): GameState {
         return copy(
-            runningValue = null,
+            runningValue = 0,
             moveIndex = 0,
             usedIndices = emptySet(),
             selectedIndex = null,
@@ -160,7 +164,7 @@ data class GameState(
                 dayIndex = dayIndex,
                 grid = emptyList(),
                 target = 0,
-                runningValue = null,
+                runningValue = 0,
                 moveIndex = 0,
                 usedIndices = emptySet(),
                 selectedIndex = null,
@@ -178,7 +182,7 @@ data class GameState(
                 dayIndex = dayIndex,
                 grid = grid,
                 target = target,
-                runningValue = null,
+                runningValue = 0,
                 moveIndex = 0,
                 usedIndices = emptySet(),
                 selectedIndex = null,
