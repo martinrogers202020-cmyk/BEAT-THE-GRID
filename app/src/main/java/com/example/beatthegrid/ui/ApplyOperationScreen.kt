@@ -22,6 +22,7 @@ import com.example.beatthegrid.ui.components.ProgressCard
 fun ApplyOperationScreen(state: GameState, onApply: (Operation) -> Unit, onBack: () -> Unit) {
     val runningValue = state.runningValue ?: 0
     val selectionValue = state.selectedIndex?.let { state.grid[it] } ?: 0
+    val canDivide = selectionValue != 0 && runningValue % selectionValue == 0
 
     AppScaffold(
         title = "Beat the Grid",
@@ -61,28 +62,28 @@ fun ApplyOperationScreen(state: GameState, onApply: (Operation) -> Unit, onBack:
             )
             FilledTonalButton(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { onApply(Operation.AddTwo) }
+                onClick = { onApply(Operation.Add) }
             ) {
-                Text(text = "+2")
+                Text(text = "+")
             }
             FilledTonalButton(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { onApply(Operation.SubtractThree) }
+                onClick = { onApply(Operation.Subtract) }
             ) {
-                Text(text = "-3")
+                Text(text = "-")
             }
             FilledTonalButton(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { onApply(Operation.MultiplyTwo) }
+                onClick = { onApply(Operation.Multiply) }
             ) {
-                Text(text = "×2")
+                Text(text = "×")
             }
             OutlinedButton(
                 modifier = Modifier.fillMaxWidth(),
-                enabled = runningValue % 2 == 0,
-                onClick = { onApply(Operation.DivideTwo) }
+                enabled = canDivide,
+                onClick = { onApply(Operation.Divide) }
             ) {
-                Text(text = "÷2")
+                Text(text = "÷")
             }
         }
     }

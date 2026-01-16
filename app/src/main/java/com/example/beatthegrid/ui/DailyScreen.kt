@@ -38,7 +38,7 @@ fun DailyScreen(state: GameState, onStart: () -> Unit) {
 
         SecondaryCard(title = "Rules") {
             Text(
-                text = "Pick a cell, then apply an operation. You get 4 moves. +2, -3, ×2, ÷2 operations are allowed.",
+                text = "Pick a cell, then apply an operation using its number. You get 4 moves. +, -, ×, ÷ operations are allowed.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
